@@ -145,7 +145,7 @@ Execution proceeds in an isolated sandbox ($\tau = 15$s, retry limit $K=2$) with
 \section{Experiments and Results}
 \label{sec:experiments}
 
-\textbf{Setup.} We evaluate on the MATH-500 benchmark~\cite{lightman2024verify,hendrycks2021math} (7 subjects, 5 difficulty levels) across six open-weight models: Qwen2.5-3B-Instruct, Qwen3-4B, Qwen2.5-7B-Instruct, Qwen2.5-Coder-7B-Instruct, Llama-3.1-8B-Instruct, and Qwen3-8B. All models run under 4-bit NormalFloat4 (NF4) quantization~\cite{dettmers2023qlora} with greedy decoding ($\text{temp}=0.0$, $\text{max\_tokens}=1024$). We benchmark against Direct generation, Chain-of-Thought (CoT)~\cite{wei2022cot}, and monolithic SymCode~\cite{nezhad2025symcode}, measuring Accuracy (\%~EM) and Execution Success Rate (ESR).
+\textbf{Setup.} We evaluate on the MATH-500 benchmark~\cite{lightman2024verify,hendrycks2021math} (7 subjects, 5 difficulty levels) across six open-weight models: Qwen2.5-3B-Instruct, Qwen3-4B, Qwen2.5-7B-Instruct, Qwen2.5-Coder-7B-Instruct, Llama-3.1-8B-Instruct, and Qwen3-8B. All models run under 4-bit NF4 quantization~\cite{dettmers2023qlora} with greedy decoding. For fair comparison, both SymCode~\cite{nezhad2025symcode} and SymPlan share an identical debugging budget of up to $K=2$ retries with interpreter feedback. Baselines also include Direct generation and CoT~\cite{wei2022cot}, measuring Accuracy (\%~EM) and Execution Success Rate (ESR).
 
 \begin{table}[t]
 \centering
@@ -201,7 +201,7 @@ Precalculus             & 56  & 37.50 & \textbf{41.07} & 46.43 & \textbf{48.21} 
 \end{tabular}}
 \end{table}
 
-\textbf{Main Results.} Table~\ref{tab:mainresults} shows that SymPlan consistently outperforms monolithic SymCode by $+3.60\%$ to $+5.20\%$ (averaging $+4.20\%$) and CoT by $+12.64\%$ (reaching $+23.20\%$ on Coder-7B). Average ESR rises from $83.83\%$ to $89.90\%$ ($+6.07\%$), reducing execution failures by $37.5\%$. In inference cost, SymPlan generates only $22.6\%$ more tokens than SymCode ($392.9$ vs. $320.6$ tokens/problem), remaining substantially shorter than CoT ($423.7$ tokens).
+\textbf{Main Results.} Table~\ref{tab:mainresults} reports results across the evaluated models. SymPlan consistently outperforms monolithic SymCode by $+3.60\%$ to $+5.20\%$ (averaging $+4.20\%$) and CoT by $+12.64\%$ (reaching $+23.20\%$ on Coder-7B). Under the shared $K=2$ retry budget, monolithic repair frequently induces silent regressions where retries overwrite correct intermediate outputs; SymPlan counters this by achieving higher initial accuracy ($C^{(0)}$ pass@1) and preserving valid candidates via anti-regression ranking. Average ESR rises from $83.83\%$ to $89.90\%$ ($+6.07\%$), reducing runtime failures by $37.5\%$. In inference cost, SymPlan generates only $22.6\%$ more tokens than SymCode ($392.9$ vs. $320.6$ tokens/problem), remaining substantially below CoT ($423.7$ tokens), confirming that gains stem from structured anchoring rather than repetitive trial-and-error.
 
 \begin{table}[t]
 \centering
@@ -224,7 +224,27 @@ Semantic Misformulations          & 974 (32.5\%) & 969 (32.3\%) & -5   & -0.5\% 
 \end{tabular}}
 \end{table}
 
-\textbf{Stratified Analysis and Ablation.} Table~\ref{tab:stratified} shows that gains concentrate in intermediate problems (Level 3: $+11.43\%$ on Coder-7B) and subjects with strict algebraic constraints: \textit{Algebra} ($+9.67\%$), \textit{Counting \& Prob.} ($+13.15\%$), and \textit{Number Theory} ($+9.68\%$). In component ablations, target anchoring ($+1.60\%$ to $+2.40\%$) and algorithmic planning ($+2.40\%$ to $+3.80\%$) improve performance independently, while combining both with anti-regression ranking attains the highest accuracy ($+3.60\%$ to $+5.20\%$).
+\begin{table}[t]
+\centering
+\caption{Component ablation on MATH-500 across key models and 6-model average.}
+\label{tab:ablation}
+\renewcommand{\arraystretch}{0.88}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\rowcolor{headergray}
+\textbf{Configuration} & \textbf{Coder-7B} & \textbf{Qwen3-8B} & \textbf{Avg Acc.} & \textbf{Avg ESR} \\
+\midrule
+Monolithic SymCode (Baseline)       & 57.00\% & 59.80\% & 50.37\% & 83.83\% \\
++ Target Anchoring ($\tau, \Sigma$) & 58.80\% & 61.80\% & 52.27\% & 86.40\% \\
++ Algorithmic Planning ($\mathcal{P}$)& 60.40\% & 63.00\% & 53.67\% & 88.30\% \\
+\rowcolor{ourgreen}
++ Anti-Regression Ranking (SymPlan) & \textbf{61.40\%} & \textbf{63.80\%} & \textbf{54.57\%} & \textbf{89.90\%} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\textbf{Stratified Analysis and Ablation.} Table~\ref{tab:stratified} shows that gains concentrate in intermediate problems (Level 3: $+11.43\%$ on Coder-7B) and subjects with strict algebraic constraints: \textit{Algebra} ($+9.67\%$), \textit{Counting \& Prob.} ($+13.15\%$), and \textit{Number Theory} ($+9.68\%$). As detailed in Table~\ref{tab:ablation}, component ablations confirm that target anchoring ($+1.90\%$ avg) and algorithmic planning ($+1.40\%$ avg) each improve accuracy independently, while combining both with anti-regression ranking achieves the highest accuracy ($54.57\%$, $+4.20\%$ over baseline) and an ESR of $89.90\%$.
 
 \textbf{Error Diagnostics and Mechanistic Insights.} As shown in Table~\ref{tab:error_breakdown}, SymPlan eliminates 126 errors across 3,000 runs ($-8.5\%$ relative drop). Safe SymPy templates lower crashes by $37.5\%$, and formal output signatures cut format mismatches by $23.5\%$. In multi-condition algebra, target anchoring registers domain bounds and evaluation points beforehand, preventing constraint omission and enabling exact symbolic reconstruction. Conversely, semantic misformulations remain flat ($974 \to 969$, $-0.5\%$), showing that neurosymbolic scaffolding resolves execution-interface failures while relying on base-model knowledge for non-constructive problem formulation.
 
