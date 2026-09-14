@@ -3,139 +3,70 @@
 \providecommand{\urlprefix}{URL }
 \providecommand{\doi}[1]{https://doi.org/#1}
 
-\bibitem{abdin2024phi3}
-Abdin, M., Jacobs, S.A., Awan, A.A., Aneja, J., Awadallah, A., Awadalla, H.,
-  Bach, N., Bahree, A., Bakhtiari, A., Behl, H., et~al.: {Phi-3} technical
-  report: A highly capable language model locally on your phone. arXiv preprint
-  arXiv:2404.14219  (2024)
-
 \bibitem{chen2022pot}
-Chen, W., Ma, X., Wang, X., Cohen, W.W.: Program of thoughts prompting:
-  Disentangling computation from reasoning for numerical reasoning tasks.
-  Transactions on Machine Learning Research (TMLR)  (2023)
+Chen, W., et~al.: Program of thoughts prompting: Disentangling computation from
+  reasoning for numerical reasoning tasks. TMLR  (2023)
 
 \bibitem{chen2024selfdebug}
-Chen, X., Lin, M., Sch{\"a}rli, N., Zhou, D.: Teaching large language models to
-  self-debug. In: International Conference on Learning Representations (ICLR)
+Chen, X., et~al.: Teaching large language models to self-debug. In: Proc. ICLR
   (2024)
 
 \bibitem{dettmers2023qlora}
-Dettmers, T., Pagnoni, A., Holtzman, A., Zettlemoyer, L.: {QLoRA}: Efficient
-  finetuning of quantized {LLMs}. In: Advances in Neural Information Processing
-  Systems (NeurIPS). vol.~36, pp. 10088--10115 (2023)
-
-\bibitem{dubey2024llama3}
-Dubey, A., Jauhri, A., Pandey, A., Kadian, A., Al-Dahle, A., Letman, A.,
-  Mathur, A., Schelten, A., Yang, A., Fan, A., et~al.: The {Llama 3} herd of
-  models. arXiv preprint arXiv:2407.21783  (2024)
+Dettmers, T., et~al.: {QLoRA}: Efficient finetuning of quantized {LLMs}. In:
+  Proc. NeurIPS. vol.~36, pp. 10088--10115 (2023)
 
 \bibitem{gao2023pal}
-Gao, L., Madaan, A., Zhou, S., Alon, U., Liu, P., Yang, Y., Callan, J., Neubig,
-  G.: {PAL}: Program-aided language models. In: Proceedings of the 40th
-  International Conference on Machine Learning (ICML). vol.~202, pp.
-  10764--10799 (2023)
+Gao, L., et~al.: {PAL}: Program-aided language models. In: Proc. ICML.
+  vol.~202, pp. 10764--10799 (2023)
 
 \bibitem{gou2024tora}
-Gou, Z., Shao, Z., Gong, Y., Shen, Y., Yang, Y., Huang, M., Duan, N., Chen, W.:
-  {ToRA}: A tool-integrated reasoning agent for mathematical problem solving.
-  In: International Conference on Learning Representations (ICLR) (2024)
+Gou, Z., et~al.: {ToRA}: A tool-integrated reasoning agent for mathematical
+  problem solving. In: Proc. ICLR (2024)
 
 \bibitem{hendrycks2021math}
-Hendrycks, D., Burns, C., Kadavath, S., Arora, A., Basart, S., Tang, E., Song,
-  D., Steinhardt, J.: Measuring mathematical problem solving with the {MATH}
-  dataset. In: Advances in Neural Information Processing Systems (NeurIPS)
-  Datasets and Benchmarks Track (2021)
-
-\bibitem{hui2024qwen25coder}
-Hui, B., Yang, J., Cui, Z., Yang, J., Liu, D., Zhang, L., Liu, T., Zhang, J.,
-  Yu, B., Dang, K., et~al.: {Qwen2.5-Coder} technical report. arXiv preprint
-  arXiv:2409.12186  (2024)
-
-\bibitem{khot2023decomposed}
-Khot, T., Trivedi, H., Finlayson, M., Fu, Y., Richardson, K., Clark, P.,
-  Sabharwal, A.: Decomposed prompting: A modular approach for solving complex
-  tasks. In: International Conference on Learning Representations (ICLR) (2023)
+Hendrycks, D., et~al.: Measuring mathematical problem solving with the {MATH}
+  dataset. In: Proc. NeurIPS Datasets Track (2021)
 
 \bibitem{lightman2024verify}
-Lightman, H., Kosaraju, V., Burda, Y., Edwards, H., Baker, B., Lee, T., Leike,
-  J., Schulman, J., Sutskever, I., Cobbe, K.: Let's verify step by step. In:
-  International Conference on Learning Representations (ICLR) (2024)
+Lightman, H., et~al.: Let's verify step by step. In: Proc. ICLR (2024)
 
 \bibitem{lyu2023faithful}
-Lyu, Q., Havaldar, S., Stein, A., Zhang, L., Rao, D., Wong, E., Apidianaki, M.,
-  Callison-Burch, C.: Faithful chain-of-thought reasoning. In: Proceedings of
-  the 13th International Joint Conference on Natural Language Processing and
-  the 3rd Conference of the Asia-Pacific Chapter of the Association for
-  Computational Linguistics. pp. 305--329 (2023)
-
-\bibitem{madaan2023selfrefine}
-Madaan, A., Tandon, N., Gupta, P., Hallinan, S., Gao, L., Wiegreffe, S., Alon,
-  U., Dziri, N., Prabhumoye, S., Yang, Y., Gupta, S., Majumder, B.P., Hermann,
-  K., Welleck, S., Yazdanbakhsh, A., Clark, P.: Self-refine: Iterative
-  refinement with self-feedback. In: Advances in Neural Information Processing
-  Systems (NeurIPS). vol.~36, pp. 46534--46594 (2023)
+Lyu, Q., et~al.: Faithful chain-of-thought reasoning. In: Proc. IJCNLP-AACL.
+  pp. 305--329 (2023)
 
 \bibitem{meurer2017sympy}
-Meurer, A., Smith, C.P., Paprocki, M., {\v{C}}ert{\'\i}k, O., Kirpichev, S.B.,
-  Rocklin, M., Kumar, A., Ivanov, S., Moore, J.K., Singh, S., et~al.: {SymPy}:
-  Symbolic computing in {Python}. PeerJ Computer Science  \textbf{3}, ~e103
-  (2017)
+Meurer, A., et~al.: {SymPy}: Symbolic computing in {Python}. PeerJ Comput. Sci.
+   \textbf{3}, ~e103 (2017)
 
 \bibitem{nezhad2025symcode}
 Nezhad, S.B., Li, Y., Agrawal, A.: {SymCode}: A neurosymbolic approach to
-  mathematical reasoning via verifiable code generation. arXiv preprint
-  arXiv:2510.25975  (2025)
+  mathematical reasoning via verifiable code generation. arXiv:2510.25975
+  (2025)
 
 \bibitem{pan2023logiclm}
-Pan, L., Albalak, A., Wang, X., Wang, W.Y.: {Logic-LM}: Empowering large
-  language models with symbolic solvers for faithful logical reasoning. In:
-  Findings of the Association for Computational Linguistics: EMNLP. pp.
-  3806--3824 (2023)
-
-\bibitem{qwen2024qwen25}
-{Qwen Team}: {Qwen2.5} technical report. arXiv preprint arXiv:2412.15115
-  (2024)
-
-\bibitem{shao2024deepseekmath}
-Shao, Z., Wang, P., Zhu, Q., Xu, R., Song, J., Zhang, M., Li, Y.K., Wu, Y.,
-  Guo, D.: {DeepSeekMath}: Pushing the limits of mathematical reasoning in open
-  language models. arXiv preprint arXiv:2402.03300  (2024)
-
-\bibitem{wang2024mathcoder}
-Wang, K., Ren, H., Zhou, A., Lu, Z., Luo, S., Shi, W., Zhang, R., Song, L.,
-  Zhan, M., Li, H.: {MathCoder}: Seamless code integration in large language
-  models for enhanced mathematical reasoning. In: International Conference on
-  Learning Representations (ICLR) (2024)
-
-\bibitem{wang2023plan}
-Wang, L., Xu, W., Lan, Y., Hu, Z., Lan, Y., Lee, R.K.W., Lim, E.P.:
-  Plan-and-solve prompting: Improving zero-shot chain-of-thought reasoning by
-  large language models. In: Proceedings of the 61st Annual Meeting of the
-  Association for Computational Linguistics (ACL). vol.~1, pp. 2609--2634
+Pan, L., et~al.: {Logic-LM}: Empowering large language models with symbolic
+  solvers for faithful logical reasoning. In: Proc. EMNLP. pp. 3806--3824
   (2023)
 
+\bibitem{wang2024mathcoder}
+Wang, K., et~al.: {MathCoder}: Seamless code integration in large language
+  models for enhanced mathematical reasoning. In: Proc. ICLR (2024)
+
+\bibitem{wang2023plan}
+Wang, L., et~al.: Plan-and-solve prompting: Improving zero-shot
+  chain-of-thought reasoning by large language models. In: Proc. ACL. pp.
+  2609--2634 (2023)
+
 \bibitem{wang2023selfconsistency}
-Wang, X., Wei, J., Schuurmans, D., Le, Q.V., Chi, E.H., Narang, S., Chowdhery,
-  A., Zhou, D.: Self-consistency improves chain of thought reasoning in
-  language models. In: International Conference on Learning Representations
-  (ICLR) (2023)
+Wang, X., et~al.: Self-consistency improves chain of thought reasoning in
+  language models. In: Proc. ICLR (2023)
 
 \bibitem{wei2022cot}
-Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., Chi, E.H.,
-  Le, Q.V., Zhou, D.: Chain-of-thought prompting elicits reasoning in large
-  language models. In: Advances in Neural Information Processing Systems
-  (NeurIPS). vol.~35, pp. 24824--24837 (2022)
-
-\bibitem{yang2024qwen25math}
-Yang, A., Zhang, B., Hui, B., Gao, B., Yu, B., Li, C., Liu, D., Tu, J., Zhou,
-  J., Lin, J., Lu, K., Xue, M., Lin, R., Liu, T., Ren, X., Zhang, Z.:
-  {Qwen2.5-Math} technical report: Toward mathematical expert model via
-  self-improvement. arXiv preprint arXiv:2409.12122  (2024)
+Wei, J., et~al.: Chain-of-thought prompting elicits reasoning in large language
+  models. In: Proc. NeurIPS. vol.~35, pp. 24824--24837 (2022)
 
 \bibitem{zhou2023leasttomost}
-Zhou, D., Sch{\"a}rli, N., Hou, L., Wei, J., Scales, N., Wang, X., Schuurmans,
-  D., Cui, C., Bousquet, O., Le, Q.V., Chi, E.H.: Least-to-most prompting
-  enables complex reasoning in large language models. In: International
-  Conference on Learning Representations (ICLR) (2023)
+Zhou, D., et~al.: Least-to-most prompting enables complex reasoning in large
+  language models. In: Proc. ICLR (2023)
 
 \end{thebibliography}

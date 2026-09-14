@@ -10,6 +10,7 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{microtype}
+\usepackage{etoolbox}
 \usepackage{tikz}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
@@ -78,22 +79,22 @@ Mathematical reasoning with language models often relies on executable symbolic 
 
 Mathematical reasoning in language models has advanced through Chain-of-Thought (CoT) prompting~\cite{wei2022cot} and structured search~\cite{wang2023selfconsistency,zhou2023leasttomost,wang2023plan}. Nevertheless, autoregressive generation often produces arithmetic errors, omitted steps, and unfaithful derivations that resist verification~\cite{lyu2023faithful,lightman2024verify}. Program-aided methods address these weaknesses by delegating computation to an external interpreter: PAL~\cite{gao2023pal} and PoT~\cite{chen2022pot} run numerical code in Python, MathCoder~\cite{wang2024mathcoder} and ToRA~\cite{gou2024tora} blend tool calls with rationales, and SymCode~\cite{nezhad2025symcode} uses SymPy~\cite{meurer2017sympy} for exact algebra.
 
-However, successful program execution does not ensure mathematical correctness. Translation-based neurosymbolic frameworks fundamentally depend on whether the generated formalization faithfully represents the problem~\cite{lyu2023faithful,pan2023logiclm}. Most existing approaches generate interpretation, planning, and code in a single prompt~\cite{gao2023pal,nezhad2025symcode}. Although frontier proprietary models can often manage this combined task, compact small language models ($\le 8\text{B}$ parameters) under 4-bit quantization~\cite{dettmers2023qlora} degrade severely on benchmarks such as MATH-500~\cite{lightman2024verify,hendrycks2021math}. In our experiments, these models display four consistent failure patterns:
-(1)~\textit{Semantic misformulation:} the generated program solves a distorted or incomplete equation;
-(2)~\textit{Target-anchor drift:} the program drifts from the queried objective and its type signature, such as returning an enumerated list when asked for set cardinality, or decimal floats instead of exact fractions;
-(3)~\textit{Domain boundary omission:} extraneous algebraic roots are accepted without filtering against domain constraints; and
-(4)~\textit{Silent repair regression:} iterative self-debugging yields syntactically valid scripts that replace previously correct answers with incorrect ones.
+However, program execution does not guarantee mathematical correctness: neurosymbolic frameworks fundamentally depend on whether the formalization faithfully represents the problem~\cite{lyu2023faithful,pan2023logiclm}. Most existing methods generate interpretation, planning, and code in a single prompt~\cite{gao2023pal,nezhad2025symcode}. Although frontier models often manage this combined task, compact small language models ($\le 8\text{B}$ parameters) under 4-bit quantization~\cite{dettmers2023qlora} degrade severely on MATH-500~\cite{lightman2024verify,hendrycks2021math}. In our experiments, these models exhibit four failure patterns:
+(1)~\textit{Semantic misformulation:} the code solves a distorted or incomplete equation;
+(2)~\textit{Target-anchor drift:} the program drifts from the queried objective and type signature, returning lists for cardinality or floats for fractions;
+(3)~\textit{Domain boundary omission:} extraneous roots are accepted without filtering against domain bounds; and
+(4)~\textit{Silent repair regression:} self-debugging yields valid scripts that replace previously correct answers with incorrect ones.
 
-To address these issues, we present \textbf{SymPlan}, an inspectable neurosymbolic framework structured specifically for compact models. SymPlan divides problem solving into three stages: first, a \textit{Fused Target-Anchoring Phase} establishes an explicit target anchor by extracting the queried variable, a formal output signature, and an algorithmic roadmap within a bounded step ($\le 256$ tokens); second, a \textit{Target-Anchored Code Generator} translates this specification into a self-contained SymPy program that enforces domain boundaries and exact arithmetic; third, a \textit{Targeted Debugging Loop} couples runtime tracebacks and static AST diagnostics with an \textit{Anti-Regression Selection} mechanism to preserve valid intermediate solutions.
+To address these issues, we present \textbf{SymPlan}, an inspectable neurosymbolic framework for compact models. SymPlan structures problem solving into three stages: first, a \textit{Fused Target-Anchoring Phase} establishes an explicit target anchor with the queried variable, formal output signature, and algorithmic roadmap ($\le 256$ tokens); second, a \textit{Target-Anchored Code Generator} translates this specification into self-contained SymPy code enforcing domain boundaries and exact arithmetic; third, a \textit{Targeted Debugging Loop} pairs tracebacks and AST diagnostics with an \textit{Anti-Regression Selection} mechanism to preserve valid intermediate solutions.
 
 Our primary contributions are:
 (1)~characterizing formulation, target-anchor drift, and repair failure modes across six compact models on MATH-500;
-(2)~introducing SymPlan, uniting fused target anchoring, specification-guided SymPy code generation, and anti-regression ranking; and
-(3)~showing that SymPlan outperforms SymCode by $+3.60\%$ to $+5.20\%$ (and CoT by $+12.64\%$) across six quantized SLMs, increasing ESR to $89.90\%$ without fine-tuning.
+(2)~introducing SymPlan, uniting fused target anchoring, specification-guided SymPy synthesis, and anti-regression ranking; and
+(3)~demonstrating that SymPlan outperforms SymCode by $+3.60\%$ to $+5.20\%$ (and CoT by $+12.64\%$) across six quantized SLMs, increasing ESR to $89.90\%$ without fine-tuning.
 
 \section{Related Work}
 
-\textbf{Program-Aided Reasoning.} PAL~\cite{gao2023pal} and PoT~\cite{chen2022pot} offload numerical steps to Python, while MathCoder~\cite{wang2024mathcoder} and ToRA~\cite{gou2024tora} combine natural-language derivations with code execution. SymCode~\cite{nezhad2025symcode} utilizes SymPy~\cite{meurer2017sympy} for exact algebra. However, monolithic generation overburdens compact models: if the model misinterprets equations or omits boundary conditions, the interpreter returns mathematically invalid answers.
+\textbf{Program-Aided Reasoning.} PAL~\cite{gao2023pal} and PoT~\cite{chen2022pot} offload numerical steps to Python, MathCoder~\cite{wang2024mathcoder} and ToRA~\cite{gou2024tora} combine derivations with code execution, and SymCode~\cite{nezhad2025symcode} utilizes SymPy~\cite{meurer2017sympy} for exact algebra. However, monolithic generation overburdens compact models: if the model misinterprets equations or omits boundary conditions, the interpreter returns mathematically invalid answers.
 
 \textbf{Formalization and Code Repair.} Faithful CoT~\cite{lyu2023faithful} separates reasoning from execution, and Logic-LM~\cite{pan2023logiclm} refines symbolic formulations via solver feedback. For code repair, Self-Debugging~\cite{chen2024selfdebug} iteratively revises scripts via interpreter feedback. On compact models, unanchored repair frequently induces code cycling or silent regressions. SymPlan grounds the repair process: the immutable target anchor preserves mathematical intent and output signature, while the attempt log prevents regressive overwrites.
 
@@ -228,63 +229,29 @@ Semantic Misformulations          & 974 (32.5\%) & 969 (32.3\%) & -5   & -0.5\% 
 
 \section{Conclusion}
 
-We presented SymPlan, an inspectable neurosymbolic framework for mathematical reasoning in compact models. By decoupling problem solving into fused target anchoring, specification-guided SymPy synthesis, and targeted debugging with anti-regression ranking, SymPlan resolves semantic misformulation, domain boundary omission, and repair regressions. Across six open-weight models (3B--8B) on MATH-500 under 4-bit quantization, SymPlan consistently outperforms SymCode by $+3.60\%$ to $+5.20\%$ (up to $+23.20\%$ over CoT) and raises the execution success rate to $89.90\%$ without parameter updates. Future work will extend SymPlan to geometric diagrams and interactive theorem proving.
+We presented SymPlan, an inspectable neurosymbolic framework for mathematical reasoning in compact models. By decoupling problem solving into fused target anchoring, specification-guided SymPy synthesis, and targeted debugging with anti-regression ranking, SymPlan resolves semantic misformulation, domain boundary omission, and repair regressions. Across six open-weight models (3B--8B) on MATH-500 under 4-bit quantization, SymPlan outperforms monolithic SymCode by $+3.60\%$ to $+5.20\%$ and CoT by $+12.64\%$, while raising execution success to $89.90\%$ without parameter updates. Future work will extend SymPlan to geometric diagrams and interactive theorem proving.
 
-\begin{thebibliography}{10}\footnotesize
-\setlength{\itemsep}{-1.8pt}
-\setlength{\parsep}{0pt}
-\providecommand{\url}[1]{\texttt{#1}}
-\providecommand{\urlprefix}{URL }
-\providecommand{\doi}[1]{https://doi.org/#1}
-
-\bibitem{wei2022cot}
-Wei, J., et~al.: Chain-of-thought prompting elicits reasoning in large language models. In: NeurIPS, vol.~35, pp. 24824--24837 (2022)
-
-\bibitem{wang2023selfconsistency}
-Wang, X., et~al.: Self-consistency improves chain of thought reasoning in language models. In: ICLR (2023)
-
-\bibitem{zhou2023leasttomost}
-Zhou, D., et~al.: Least-to-most prompting enables complex reasoning in large language models. In: ICLR (2023)
-
-\bibitem{wang2023plan}
-Wang, L., et~al.: Plan-and-solve prompting: Improving zero-shot chain-of-thought reasoning by large language models. In: ACL, pp. 2609--2634 (2023)
-
-\bibitem{lyu2023faithful}
-Lyu, Q., et~al.: Faithful chain-of-thought reasoning. In: IJCNLP-AACL, pp. 305--329 (2023)
-
-\bibitem{gao2023pal}
-Gao, L., et~al.: {PAL}: Program-aided language models. In: ICML, vol. 202, pp. 10764--10799 (2023)
-
-\bibitem{chen2022pot}
-Chen, W., et~al.: Program of thoughts prompting: Disentangling computation from reasoning for numerical reasoning tasks. TMLR (2023)
-
-\bibitem{wang2024mathcoder}
-Wang, K., et~al.: {MathCoder}: Seamless code integration in large language models for enhanced mathematical reasoning. In: ICLR (2024)
-
-\bibitem{gou2024tora}
-Gou, Z., et~al.: {ToRA}: A tool-integrated reasoning agent for mathematical problem solving. In: ICLR (2024)
-
-\bibitem{nezhad2025symcode}
-Nezhad, S.B., Li, Y., Agrawal, A.: {SymCode}: A neurosymbolic approach to mathematical reasoning via verifiable code generation. arXiv:2510.25975 (2025)
-
-\bibitem{meurer2017sympy}
-Meurer, A., et~al.: {SymPy}: Symbolic computing in {Python}. PeerJ Computer Science \textbf{3}, e103 (2017)
-
-\bibitem{pan2023logiclm}
-Pan, L., et~al.: {Logic-LM}: Empowering large language models with symbolic solvers for faithful logical reasoning. In: EMNLP, pp. 3806--3824 (2023)
-
-\bibitem{lightman2024verify}
-Lightman, H., et~al.: Let's verify step by step. In: ICLR (2024)
-
-\bibitem{hendrycks2021math}
-Hendrycks, D., et~al.: Measuring mathematical problem solving with the {MATH} dataset. In: NeurIPS Datasets Track (2021)
-
-\bibitem{dettmers2023qlora}
-Dettmers, T., et~al.: {QLoRA}: Efficient finetuning of quantized {LLMs}. In: NeurIPS, vol.~36, pp. 10088--10115 (2023)
-
-\bibitem{chen2024selfdebug}
-Chen, X., et~al.: Teaching large language models to self-debug. In: ICLR (2024)
-
-\end{thebibliography}
+\makeatletter
+\renewenvironment{thebibliography}[1]
+     {\section*{\refname}%
+      \def\@biblabel##1{##1.}%
+      \footnotesize
+      \list{\@biblabel{\@arabic\c@enumiv}}%
+           {\settowidth\labelwidth{\@biblabel{#1}}%
+            \leftmargin\labelwidth
+            \advance\leftmargin\labelsep
+            \setlength{\itemsep}{-2.2pt}%
+            \setlength{\parsep}{0pt}%
+            \usecounter{enumiv}%
+            \let\p@enumiv\@empty
+            \renewcommand\theenumiv{\@arabic\c@enumiv}}%
+      \sloppy\clubpenalty4000\widowpenalty4000%
+      \sfcode`\.=\@m}
+     {\def\@noitemerr
+       {\@latex@warning{Empty `thebibliography' environment}}%
+      \endlist}
+\makeatother
+\bibliographystyle{splncs04}
+\bibliography{cite}
 
 \end{document}
