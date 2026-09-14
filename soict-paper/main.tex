@@ -22,6 +22,7 @@
 \setlength{\intextsep}{4pt plus 1pt minus 1pt}
 \setlength{\abovecaptionskip}{3pt}
 \setlength{\belowcaptionskip}{2pt}
+\raggedbottom
 
 % Publication color palette
 \definecolor{checkgreen}{HTML}{2E7D32}
@@ -70,63 +71,63 @@ FPT University, Ho Chi Minh City, Vietnam\\
 \maketitle
 
 \begin{abstract}
-Executable symbolic programming enables language models to overcome calculation errors in multi-step mathematical reasoning. While frontier proprietary models excel at this task by synthesizing interpretation, planning, and code in a single unconstrained pass, compact small language models (SLMs, $\le 8\text{B}$ parameters) under 4-bit quantization collapse under this monolithic burden. Due to limited capacity, compact models struggle to concurrently parse problem semantics, plan algebraic steps, and emit formal code, leading to semantic goal drift, omitted domain boundaries, and repair regressions. To bridge this capability gap without parameter scaling, we introduce \textbf{SymPlan}, an inspectable neurosymbolic framework designed for resource-constrained reasoning. Rather than relying on monolithic generation, SymPlan establishes an immutable \textit{target anchor} that fixes the queried unknown and its formal output signature prior to code generation, stabilizing downstream SymPy synthesis and preventing regressive overwrites during iterative debugging. Evaluated across six open-weight models (3B--8B) on the MATH-500 benchmark under 4-bit quantization, SymPlan consistently outperforms monolithic SymCode by $+3.60\%$ to $+5.20\%$ (averaging $+4.20\%$) and Chain-of-Thought by $+12.64\%$, while elevating the execution success rate to $89.90\%$ without fine-tuning.
+Executable symbolic programming helps language models overcome calculation errors in mathematical reasoning. While frontier models succeed by jointly interpreting, planning, and generating code in a single unconstrained pass, compact small language models (SLMs, $\le 8\text{B}$) under 4-bit quantization collapse under this monolithic burden. Limited capacity induces cognitive overload, causing semantic goal drift, omitted domain boundaries, and repair regressions. To bridge this gap without parameter scaling, we propose \textbf{SymPlan}, an inspectable neurosymbolic framework for resource-constrained reasoning. SymPlan establishes an immutable \textit{target anchor} that locks the queried unknown and its formal output signature prior to code generation, stabilizing SymPy synthesis and preventing regressive overwrites during debugging. Across six open-weight quantized models (3B--8B) on MATH-500, SymPlan outperforms monolithic SymCode by $+3.60\%$ to $+5.20\%$ (averaging $+4.20\%$) and Chain-of-Thought by $+12.64\%$, raising execution success to $89.90\%$ without fine-tuning.
 
 \keywords{Neurosymbolic AI \and Small Language Models \and Mathematical Reasoning \and SymPy Code Generation \and Algorithmic Planning.}
 \end{abstract}
 
 \section{Introduction}
 
-Mathematical reasoning in language models has advanced through Chain-of-Thought (CoT) prompting~\cite{wei2022cot} and structured search~\cite{wang2023selfconsistency,zhou2023leasttomost,wang2023plan}. Nevertheless, autoregressive generation often produces arithmetic errors, omitted steps, and unfaithful derivations that resist verification~\cite{lyu2023faithful,lightman2024verify}. Program-aided methods address these weaknesses by delegating computation to an external interpreter: PAL~\cite{gao2023pal} and PoT~\cite{chen2022pot} run numerical code in Python, MathCoder~\cite{wang2024mathcoder} and ToRA~\cite{gou2024tora} blend tool calls with rationales, and SymCode~\cite{nezhad2025symcode} uses SymPy~\cite{meurer2017sympy} for exact algebra.
+Chain-of-Thought (CoT) prompting~\cite{wei2022cot} and structured search~\cite{wang2023selfconsistency,zhou2023leasttomost,wang2023plan} have advanced language model reasoning, yet autoregressive generation still produces arithmetic errors and unfaithful derivations~\cite{lyu2023faithful,lightman2024verify}. Program-aided approaches delegate computation to external interpreters: PAL~\cite{gao2023pal} and PoT~\cite{chen2022pot} execute numerical Python, MathCoder~\cite{wang2024mathcoder} and ToRA~\cite{gou2024tora} blend tool calls with rationales, and SymCode~\cite{nezhad2025symcode} uses SymPy~\cite{meurer2017sympy} for exact algebra.
 
-However, program execution does not guarantee mathematical correctness: neurosymbolic frameworks fundamentally depend on whether the formalization faithfully represents the problem~\cite{lyu2023faithful,pan2023logiclm}. Most existing methods generate interpretation, planning, and code in a single prompt~\cite{gao2023pal,nezhad2025symcode}. Although frontier models often manage this combined task, compact small language models ($\le 8\text{B}$ parameters) under 4-bit quantization~\cite{dettmers2023qlora} degrade severely on MATH-500~\cite{lightman2024verify,hendrycks2021math}. In our experiments, these models exhibit four failure patterns:
-(1)~\textit{Semantic misformulation:} the code solves a distorted or incomplete equation;
-(2)~\textit{Target-anchor drift:} the program drifts from the queried objective and type signature, returning lists for cardinality or floats for fractions;
-(3)~\textit{Domain boundary omission:} extraneous roots are accepted without filtering against domain bounds; and
-(4)~\textit{Silent repair regression:} self-debugging yields valid scripts that replace previously correct answers with incorrect ones.
+However, execution cannot guarantee mathematical correctness if formalization fails to represent the problem faithfully~\cite{lyu2023faithful,pan2023logiclm}. Most methods synthesize interpretation, planning, and code in a single unconstrained prompt~\cite{gao2023pal,nezhad2025symcode}. While frontier models manage this joint task, compact models ($\le 8\text{B}$) under 4-bit quantization~\cite{dettmers2023qlora} degrade severely on MATH-500~\cite{lightman2024verify,hendrycks2021math} due to four failure patterns:
+(1)~\textit{semantic misformulation}, solving distorted equations;
+(2)~\textit{target-anchor drift}, diverging from the queried variable or type signature;
+(3)~\textit{domain boundary omission}, admitting extraneous roots without bound checks; and
+(4)~\textit{silent repair regression}, where self-debugging replaces valid solutions with incorrect ones.
 
-To address these issues, we present \textbf{SymPlan}, an inspectable neurosymbolic framework for compact models. SymPlan structures problem solving into three stages: first, a \textit{Fused Target-Anchoring Phase} establishes an explicit target anchor with the queried variable, formal output signature, and algorithmic roadmap ($\le 256$ tokens); second, a \textit{Target-Anchored Code Generator} translates this specification into self-contained SymPy code enforcing domain boundaries and exact arithmetic; third, a \textit{Targeted Debugging Loop} pairs tracebacks and AST diagnostics with an \textit{Anti-Regression Selection} mechanism to preserve valid intermediate solutions.
+To resolve these failures, we introduce \textbf{SymPlan}, an inspectable neurosymbolic framework for compact models. SymPlan decouples reasoning into three stages: a bounded \textit{Fused Target-Anchoring Phase} ($\le 256$ tokens) fixing the queried variable, formal output signature, and algorithmic roadmap; a \textit{Target-Anchored Code Generator} producing domain-constrained SymPy code; and a \textit{Targeted Debugging Loop} pairing AST diagnostics with an \textit{Anti-Regression Selection} mechanism to preserve valid solutions.
 
-Our primary contributions are:
-(1)~characterizing formulation, target-anchor drift, and repair failure modes across six compact models on MATH-500;
-(2)~introducing SymPlan, uniting fused target anchoring, specification-guided SymPy synthesis, and anti-regression ranking; and
-(3)~demonstrating that SymPlan outperforms SymCode by $+3.60\%$ to $+5.20\%$ (and CoT by $+12.64\%$) across six quantized SLMs, increasing ESR to $89.90\%$ without fine-tuning.
+Our contributions are:
+(1)~characterizing formulation, target drift, and repair failures across six compact models on MATH-500;
+(2)~proposing SymPlan to decouple target anchoring, SymPy synthesis, and anti-regression repair; and
+(3)~demonstrating consistent gains over SymCode ($+3.60\%$ to $+5.20\%$) and CoT ($+12.64\%$), raising ESR to $89.90\%$ without fine-tuning.
 
 \section{Related Work}
 
-\textbf{Program-Aided Reasoning.} PAL~\cite{gao2023pal} and PoT~\cite{chen2022pot} offload numerical steps to Python, MathCoder~\cite{wang2024mathcoder} and ToRA~\cite{gou2024tora} combine derivations with code execution, and SymCode~\cite{nezhad2025symcode} utilizes SymPy~\cite{meurer2017sympy} for exact algebra. However, monolithic generation overburdens compact models: if the model misinterprets equations or omits boundary conditions, the interpreter returns mathematically invalid answers.
+\textbf{Program-Aided Reasoning.} PAL~\cite{gao2023pal}, PoT~\cite{chen2022pot}, MathCoder~\cite{wang2024mathcoder}, and ToRA~\cite{gou2024tora} offload computation to Python, while SymCode~\cite{nezhad2025symcode} uses SymPy~\cite{meurer2017sympy} for exact algebra. However, monolithic generation overburdens compact models: misinterpreted equations or omitted domain boundaries yield mathematically invalid code.
 
-\textbf{Formalization and Code Repair.} Faithful CoT~\cite{lyu2023faithful} separates reasoning from execution, and Logic-LM~\cite{pan2023logiclm} refines symbolic formulations via solver feedback. For code repair, Self-Debugging~\cite{chen2024selfdebug} iteratively revises scripts via interpreter feedback. On compact models, unanchored repair frequently induces code cycling or silent regressions. SymPlan grounds the repair process: the immutable target anchor preserves mathematical intent and output signature, while the attempt log prevents regressive overwrites.
+\textbf{Formalization and Code Repair.} Faithful CoT~\cite{lyu2023faithful} separates reasoning from execution, Logic-LM~\cite{pan2023logiclm} refines symbolic forms, and Self-Debugging~\cite{chen2024selfdebug} patches scripts iteratively. On compact models, unanchored repair causes code cycling and silent regressions. SymPlan grounds repair through an immutable target anchor and anti-regression tracking.
 
-\textbf{Planning in SLMs.} Structured prompting improves reasoning in compact architectures, including Self-consistency~\cite{wang2023selfconsistency}, Least-to-Most~\cite{zhou2023leasttomost}, and Plan-and-Solve~\cite{wang2023plan}. SymPlan builds on these insights by establishing an explicit target anchor and structured execution steps designed for quantized models.
+\textbf{Planning in SLMs.} Structured prompting, including Self-consistency~\cite{wang2023selfconsistency}, Least-to-Most~\cite{zhou2023leasttomost}, and Plan-and-Solve~\cite{wang2023plan}, enhances reasoning in compact models. SymPlan extends these concepts by establishing explicit target anchors and verifiable execution steps tailored for quantized models.
 
 \section{Method}
 \label{sec:method}
 
 \subsection{Framework Formulation}
 
-Given a mathematical problem $q$, monolithic symbolic approaches~\cite{nezhad2025symcode} synthesize and execute code in a single unconstrained step: $C_{\text{base}} \sim \mathcal{M}(\cdot \mid q)$, $\hat{y} = \operatorname{Exec}(C_{\text{base}})$. On compact models, this joint generation causes semantic drift and execution crashes. SymPlan structures problem solving through three target-anchored phases:
+Given a problem $q$, monolithic symbolic approaches~\cite{nezhad2025symcode} generate and execute code in one unconstrained pass: $C_{\text{base}} \sim \mathcal{M}(\cdot \mid q)$, $\hat{y} = \operatorname{Exec}(C_{\text{base}})$. On compact models, this joint generation causes semantic drift and execution crashes. SymPlan structures problem solving into three target-anchored phases:
 \begin{align}
 \mathcal{T} = (\tau, \Sigma, \mathcal{P}) &= \operatorname{FusedPlan}_{\mathcal{M}}(q), \label{eq:fused_plan} \\
 C^{(0)} = \operatorname{CodeGen}_{\mathcal{M}}(q, \mathcal{T}), &\quad \mathcal{H} = \operatorname{ExecuteAndRepair}_{\mathcal{M}}(C^{(0)}, q, \mathcal{T}), \label{eq:codegen_repair} \\
 \hat{y} &= \operatorname{SelectBest}(\mathcal{H}, \Sigma), \label{eq:select}
 \end{align}
-where $\tau$ denotes the queried target unknown, $\Sigma$ is the formal output signature, $\mathcal{P}$ represents the ordered computational plan, and $\mathcal{H}$ records the execution history. Like a holding anchor stabilizing team structure, establishing $\mathcal{T}$ prior to code generation anchors mathematical intent throughout subsequent execution and debugging.
+where $\tau$ denotes the queried unknown, $\Sigma$ is the formal output signature, $\mathcal{P}$ represents the computational plan, and $\mathcal{H}$ records execution history. Like an anchor man stabilizing team structure, establishing $\mathcal{T}$ prior to code generation anchors mathematical intent throughout execution and debugging.
 
 \subsection{Fused Target Anchoring and Algorithmic Planning}
 
-Multi-turn prompting pipelines often double autoregressive latency and cause context drift in compact models. To avoid this overhead, SymPlan extracts the target anchor and plan tuple $\mathcal{T} = (\tau, \Sigma, \mathcal{P})$ in a single bounded generation ($\le 256$ tokens):
-(1)~\textbf{Target Specification ($\tau$):} the formal quantity queried, such as the positive real roots of an equation;
-(2)~\textbf{Formal Output Signature ($\Sigma$):} a discrete type signature $\Sigma \in \{\text{numeric}, \text{text}, \text{tuple}, \text{set}, \text{symbolic}\}$, where queries asking ``how many'' assign $\Sigma = \text{numeric}$ to return set cardinality rather than enumerating values; and
-(3)~\textbf{Computational Plan ($\mathcal{P}$):} an ordered sequence of symbolic operations $(p_1, \ldots, p_m)$ defining symbols, equations, transformations, and domain boundary checks.
+Multi-turn prompting pipelines often double autoregressive latency and induce context drift in compact models. SymPlan extracts the target anchor and plan $\mathcal{T} = (\tau, \Sigma, \mathcal{P})$ in a single bounded pass ($\le 256$ tokens):
+(1)~\textbf{Target Specification ($\tau$):} the formal quantity queried (e.g., positive real roots);
+(2)~\textbf{Formal Output Signature ($\Sigma$):} a discrete type $\Sigma \in \{\text{numeric}, \text{text}, \text{tuple}, \text{set}, \text{symbolic}\}$, where cardinality queries map to $\Sigma = \text{numeric}$; and
+(3)~\textbf{Computational Plan ($\mathcal{P}$):} ordered symbolic steps $(p_1, \ldots, p_m)$ specifying symbols, equations, transformations, and domain boundary checks.
 
 \subsection{Target-Anchored SymPy Code Generation}
 
-Given the target anchor and plan $(\tau, \Sigma, \mathcal{P})$, generator $\operatorname{CodeGen}_{\mathcal{M}}$ produces a self-contained SymPy script following four rules:
-(1)~\textit{Exact Arithmetic:} Rationals use \texttt{sp.Rational(p, q)} or \texttt{sp.S(p)/q}; float evaluations via \texttt{evalf()} are excluded unless decimals are requested.
-(2)~\textit{Domain Filtering:} Roots from \texttt{sp.solve} are filtered against domain bounds ($x \in \mathbb{R}^+$, non-zero denominators).
-(3)~\textit{Simplification:} Expressions are simplified via \texttt{sp.together()} or \texttt{sp.cancel()}.
-(4)~\textit{Signature Conformance:} The script emits a single boxed \LaTeX{} answer strictly conforming to signature $\Sigma$.
+Given $(\tau, \Sigma, \mathcal{P})$, generator $\operatorname{CodeGen}_{\mathcal{M}}$ produces self-contained SymPy code enforcing four invariants:
+(1)~\textit{Exact Arithmetic:} rationals use \texttt{sp.Rational(p, q)}; floats are avoided unless requested.
+(2)~\textit{Domain Filtering:} roots from \texttt{sp.solve} are checked against domain bounds ($x \in \mathbb{R}^+$, non-zero denominators).
+(3)~\textit{Simplification:} expressions are canonicalized via \texttt{sp.together()} or \texttt{sp.cancel()}.
+(4)~\textit{Signature Conformance:} the script prints a single boxed \LaTeX{} answer strictly conforming to $\Sigma$.
 
 \begin{lstlisting}[style=promptstyle,language=Python]
 import sympy as sp; x = sp.Symbol('x', real=True); eq = sp.Eq(sp.sqrt(x), x - 2)
@@ -136,15 +137,15 @@ print(r"\boxed{%s}" % sp.latex(valid[0]))
 
 \subsection{Targeted Debugging with Anti-Regression Selection}
 
-Scripts execute in an isolated sandbox with timeout $\tau = 15$s and retry limit $K=2$, incorporating three safeguards:
-\textbf{AST Diagnostics:} Tracebacks $e^{(i)}$ are paired with static AST diagnostics (\texttt{lint\_sympy\_code}) and candidate verification $v^{(i)}$.
-\textbf{Anti-Cycling Repair:} If $C^{(i)} \equiv C^{(i-1)}$, an explicit constraint forces an alternative implementation strategy.
-\textbf{Anti-Regression Ranking:} Every attempt is logged into history $\mathcal{H} = \{r_0, \ldots, r_k\}$ and scored via a lexicographic ranking tuple $\operatorname{Rank}(r) = \langle \mathbb{I}_{\text{exec}}(r), \mathbb{I}_{\text{valid}}(r), \mathbb{I}_{\text{verif}}(r), -\operatorname{attempt}(r) \rangle$, where $\mathbb{I}_{\text{exec}}$ indicates zero execution errors, $\mathbb{I}_{\text{valid}}$ denotes valid boxed extraction, $\mathbb{I}_{\text{verif}}$ indicates candidate verification pass, and $-\operatorname{attempt}(r)$ prioritizes earlier valid runs over speculative later mutations. The optimal record is $r^* = \arg\max_{r \in \mathcal{H}} \operatorname{Rank}(r)$. Multi-tier fallback handles unparseable outputs via regex scanning and type normalization.
+Execution proceeds in an isolated sandbox ($\tau = 15$s, retry limit $K=2$) with three safeguards:
+\textbf{AST Diagnostics:} Tracebacks $e^{(i)}$ are paired with static AST checks (\texttt{lint\_sympy\_code}) and candidate verification $v^{(i)}$.
+\textbf{Anti-Cycling Repair:} If $C^{(i)} \equiv C^{(i-1)}$, prompt constraints force an alternative implementation strategy.
+\textbf{Anti-Regression Ranking:} Attempts are recorded in $\mathcal{H} = \{r_0, \ldots, r_k\}$ and scored via $\operatorname{Rank}(r) = \langle \mathbb{I}_{\text{exec}}(r), \mathbb{I}_{\text{valid}}(r), \mathbb{I}_{\text{verif}}(r), -\operatorname{attempt}(r) \rangle$, prioritizing verified earlier runs over speculative later mutations. The optimal output is $r^* = \arg\max_{r \in \mathcal{H}} \operatorname{Rank}(r)$, with multi-tier regex fallback for malformed outputs.
 
 \section{Experiments and Results}
 \label{sec:experiments}
 
-\textbf{Setup.} We evaluate on the full MATH-500 benchmark~\cite{lightman2024verify,hendrycks2021math} (7 subjects, 5 difficulty levels) across six open-weight models: Qwen2.5-3B-Instruct, Qwen3-4B, Qwen2.5-7B-Instruct, Qwen2.5-Coder-7B-Instruct, Llama-3.1-8B-Instruct, and Qwen3-8B. All models run under 4-bit NormalFloat4 (NF4) quantization~\cite{dettmers2023qlora} with greedy decoding ($\text{temp}=0.0$, $\text{max\_tokens}=1024$). We benchmark against Direct zero-shot generation, Chain-of-Thought (CoT)~\cite{wei2022cot}, and monolithic SymCode~\cite{nezhad2025symcode}, evaluating Accuracy (\%~EM) and Execution Success Rate (ESR).
+\textbf{Setup.} We evaluate on the MATH-500 benchmark~\cite{lightman2024verify,hendrycks2021math} (7 subjects, 5 difficulty levels) across six open-weight models: Qwen2.5-3B-Instruct, Qwen3-4B, Qwen2.5-7B-Instruct, Qwen2.5-Coder-7B-Instruct, Llama-3.1-8B-Instruct, and Qwen3-8B. All models run under 4-bit NormalFloat4 (NF4) quantization~\cite{dettmers2023qlora} with greedy decoding ($\text{temp}=0.0$, $\text{max\_tokens}=1024$). We benchmark against Direct generation, Chain-of-Thought (CoT)~\cite{wei2022cot}, and monolithic SymCode~\cite{nezhad2025symcode}, measuring Accuracy (\%~EM) and Execution Success Rate (ESR).
 
 \begin{table}[t]
 \centering
@@ -200,7 +201,7 @@ Precalculus             & 56  & 37.50 & \textbf{41.07} & 46.43 & \textbf{48.21} 
 \end{tabular}}
 \end{table}
 
-\textbf{Main Results.} Table~\ref{tab:mainresults} reports results across the evaluated models. SymPlan consistently outperforms monolithic SymCode by $+3.60\%$ to $+5.20\%$ (averaging $+4.20\%$) and CoT by $+12.64\%$ (reaching $+23.20\%$ on Qwen2.5-Coder-7B). Average ESR increases from $83.83\%$ to $89.90\%$ ($+6.07\%$), lowering execution failures by $37.5\%$. In inference cost, SymPlan generates only $22.6\%$ more tokens than SymCode ($392.9$ vs. $320.6$ tokens/problem), remaining substantially shorter than CoT ($423.7$ tokens).
+\textbf{Main Results.} Table~\ref{tab:mainresults} shows that SymPlan consistently outperforms monolithic SymCode by $+3.60\%$ to $+5.20\%$ (averaging $+4.20\%$) and CoT by $+12.64\%$ (reaching $+23.20\%$ on Coder-7B). Average ESR rises from $83.83\%$ to $89.90\%$ ($+6.07\%$), reducing execution failures by $37.5\%$. In inference cost, SymPlan generates only $22.6\%$ more tokens than SymCode ($392.9$ vs. $320.6$ tokens/problem), remaining substantially shorter than CoT ($423.7$ tokens).
 
 \begin{table}[t]
 \centering
@@ -223,13 +224,13 @@ Semantic Misformulations          & 974 (32.5\%) & 969 (32.3\%) & -5   & -0.5\% 
 \end{tabular}}
 \end{table}
 
-\textbf{Stratified Analysis and Ablation.} Table~\ref{tab:stratified} indicates that gains concentrate in intermediate problems (Level 3: $+11.43\%$ on Coder-7B). By subject, improvements focus on \textit{Algebra} ($+9.67\%$), \textit{Counting \& Prob.} ($+13.15\%$), and \textit{Number Theory} ($+9.68\%$), where integer constraints are easily omitted by monolithic baselines. In component ablations, target anchoring ($+1.60\%$ to $+2.40\%$) and algorithmic planning ($+2.40\%$ to $+3.80\%$) each improve accuracy independently, while combining them with anti-regression ranking achieves the highest accuracy ($+3.60\%$ to $+5.20\%$).
+\textbf{Stratified Analysis and Ablation.} Table~\ref{tab:stratified} shows that gains concentrate in intermediate problems (Level 3: $+11.43\%$ on Coder-7B) and subjects with strict algebraic constraints: \textit{Algebra} ($+9.67\%$), \textit{Counting \& Prob.} ($+13.15\%$), and \textit{Number Theory} ($+9.68\%$). In component ablations, target anchoring ($+1.60\%$ to $+2.40\%$) and algorithmic planning ($+2.40\%$ to $+3.80\%$) improve performance independently, while combining both with anti-regression ranking attains the highest accuracy ($+3.60\%$ to $+5.20\%$).
 
-\textbf{Error Diagnostics and Mechanistic Insights.} As detailed in Table~\ref{tab:error_breakdown}, SymPlan eliminates 126 errors across 3,000 evaluations ($-8.5\%$ relative drop). Safe SymPy templates reduce runtime crashes by $37.5\%$, while formal output signatures lower format and type mismatches by $23.5\%$. In multi-condition algebra problems, unconstrained generation frequently overlooks intermediate boundary conditions during code synthesis. By contrast, the target anchor establishes an explicit algebraic contract registering all evaluation points and domain bounds beforehand, preventing constraint omission and enabling exact symbolic reconstruction. Conversely, semantic misformulations remain flat ($974 \to 969$, $-0.5\%$), indicating that neurosymbolic scaffolding resolves interface-level discrepancies while relying on base-model capabilities for non-constructive mathematical formulation.
+\textbf{Error Diagnostics and Mechanistic Insights.} As shown in Table~\ref{tab:error_breakdown}, SymPlan eliminates 126 errors across 3,000 runs ($-8.5\%$ relative drop). Safe SymPy templates lower crashes by $37.5\%$, and formal output signatures cut format mismatches by $23.5\%$. In multi-condition algebra, target anchoring registers domain bounds and evaluation points beforehand, preventing constraint omission and enabling exact symbolic reconstruction. Conversely, semantic misformulations remain flat ($974 \to 969$, $-0.5\%$), showing that neurosymbolic scaffolding resolves execution-interface failures while relying on base-model knowledge for non-constructive problem formulation.
 
 \section{Conclusion}
 
-We presented SymPlan, an inspectable neurosymbolic framework for mathematical reasoning in compact models. By decoupling problem solving into fused target anchoring, specification-guided SymPy synthesis, and targeted debugging with anti-regression ranking, SymPlan resolves semantic misformulation, domain boundary omission, and repair regressions. Across six open-weight models (3B--8B) on MATH-500 under 4-bit quantization, SymPlan outperforms monolithic SymCode by $+3.60\%$ to $+5.20\%$ and CoT by $+12.64\%$, while raising execution success to $89.90\%$ without parameter updates. Future work will extend SymPlan to geometric diagrams and interactive theorem proving.
+We presented SymPlan, an inspectable neurosymbolic framework for mathematical reasoning in compact models. By decoupling problem solving into fused target anchoring, specification-guided SymPy synthesis, and targeted debugging with anti-regression ranking, SymPlan resolves boundary omission and repair regressions. Across six quantized models (3B--8B) on MATH-500, SymPlan outperforms monolithic SymCode by $+3.60\%$ to $+5.20\%$ and CoT by $+12.64\%$, raising execution success to $89.90\%$ without fine-tuning. Future work will extend SymPlan to interactive theorem proving and geometric diagrams.
 
 \makeatletter
 \renewenvironment{thebibliography}[1]
